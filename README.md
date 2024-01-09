@@ -1,18 +1,130 @@
-<h1>Projeto de Leitura de CSV</h1>
+### NodeJS API Restaurante 🧨🎯
 
-<p>Este projeto faz leitura de arquivos csv entre outros. Com o objetivo de gravar as informações no banco de dados.</p>
+🌏🏛 Esse projeto foi criado para realizar leitura de arquivo csv e grava no banco de dados. Sendo separado pelo título. Exemplo: description, price, title etc...
 
-<h3>Neste projeto utilizei as seguintes ferramentas</h3>
-<ul>
-  <li>NodeJS</li>
-  <li>PrismaORM</li>
-  <li>Postgres</li>
-  <li>Multer</li>
-</ul>
+**Tecnologias usadas** 🤖 💻
 
-<h4>Desafios</h4>
-<ul>
-  <li>Realizar a leitura do arquivo</li>
-  <li>Verificar após a leitura se os dados já existem no banco de dados</li>
-  <li>Se existirem não será gravado no banco de dados. Caso contrário, sim.</li>
-</ul>
+- Nodejs ✅
+  
+- Prisma ORM ✅
+  
+- Postgres ✅
+  
+- Typescript ✅
+  
+- Express JS ✅
+  
+- multer ✅
+  
+
+#### Gettinn Started 🏁
+
+1. **Faça o download do projeto.** ⚡
+  
+  ```bash
+  git clone git@github.com:igormachado/read-files-nodejs.git
+  ```
+  
+2. **Instalar as dependências do projeto, npm** ⚡
+  
+
+```bash
+cd read-files-nodejs
+npm install        
+```
+
+3 - **Realizar um migrate no Prisma ORM.** ⚡
+
+```bash
+npx prisma migrate dev
+```
+
+#### **POST** 🧨
+
+- ***routes.post("/products);***
+  
+  - Esta rota cria um a leitura do arquivo fazendo a leitura e validando o file ser gravado no banco de dados.
+    
+
+```js
+router.post(
+  "/products",
+  multerConfig.single("file"),
+  async (request: Request, response: Response) => {
+    const { file } = request;
+
+    const readableFile = new Readable();
+    readableFile.push(file?.buffer);
+    readableFile.push(null);
+
+    const productsLine = readline.createInterface({
+      input: readableFile,
+    });
+
+    const products: Product[] = [];
+
+    for await (let line of productsLine) {
+      const productLineSplit = line.split(",");
+      console.log(productLineSplit);
+      console.log(productLineSplit[0]);
+      console.log("");
+
+      products.push({
+        code_bar: productLineSplit[0],
+        description: productLineSplit[1],
+        price: Number(productLineSplit[2]),
+        quantity: Number(productLineSplit[3]),
+      });
+    }
+
+    for await (let { code_bar, description, price, quantity } of products) {
+      await client.products.create({
+        data: {
+          code_bar,
+          description,
+          price,
+          quantity,
+        },
+      });
+    }
+    return response.status(201).json(products);
+  }
+);
+```
+
+- ***Criando e verificando se o arquivo existe no banco de dados***
+  
+
+```js
+interface IProduct {
+  code_bar: string;
+  description: string;
+  price: number;
+  quantity: number;
+}
+
+export class UploadFileUseCase {
+  async execute({ code_bar, description, price, quantity }: IProduct) {
+    const productExists = await client.products.findFirst({
+      where: {
+        description,
+      },
+    });
+
+    if (productExists) {
+      throw new Error("Product already exists.");
+    }
+
+    const createProduct = await client.products.create({
+      data: {
+        code_bar,
+        description,
+        price,
+        quantity,
+      },
+    });
+
+    return createProduct;
+  }
+}
+```
